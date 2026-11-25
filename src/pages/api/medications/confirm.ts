@@ -92,8 +92,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const shouldNotify = notify_line === true || process.env.WATCH_NOTIFY_LINE === 'true';
-    const channelAccessToken = process.env.CHANNEL_ACCESS_TOKEN_LINE;
+    const shouldNotify = notify_line !== false;
+    const channelAccessToken =
+      process.env.CHANNEL_ACCESS_TOKEN_LINE || process.env.LINE_CHANNEL_ACCESS_TOKEN;
+
+    console.log(
+      '[Watch Confirm] shouldNotify:',
+      shouldNotify,
+      '| hasToken:',
+      Boolean(channelAccessToken)
+    );
 
     if (shouldNotify && channelAccessToken) {
       try {
@@ -103,6 +111,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const user = takecare?.users_id
           ? await prisma.users.findFirst({ where: { users_id: takecare.users_id } })
           : null;
+
+        console.log(
+          '[Watch Confirm] takecare_id:',
+          resolvedTakecareId,
+          '| users_line_id:',
+          user?.users_line_id
+        );
 
         if (user?.users_line_id) {
           const elderName =
@@ -128,9 +143,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               },
             }
           );
+          console.log('[Watch Confirm] ส่ง LINE สำเร็จ!');
         }
-      } catch (lineErr) {
-        console.error('Failed to send LINE taken confirmation:', lineErr);
+      } catch (lineErr: any) {
+        console.error(
+          'Failed to send LINE taken confirmation:',
+          lineErr?.response?.data || lineErr?.message
+        );
       }
     }
 
