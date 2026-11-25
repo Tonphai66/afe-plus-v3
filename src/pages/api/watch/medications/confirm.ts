@@ -96,13 +96,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const channelAccessToken =
       process.env.CHANNEL_ACCESS_TOKEN_LINE || process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
-    console.log(
-      '[Watch Confirm] shouldNotify:',
-      shouldNotify,
-      '| hasToken:',
-      Boolean(channelAccessToken)
-    );
-
     if (shouldNotify && channelAccessToken) {
       try {
         const takecare = await prisma.takecareperson.findFirst({
@@ -112,18 +105,65 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ? await prisma.users.findFirst({ where: { users_id: takecare.users_id } })
           : null;
 
-        console.log(
-          '[Watch Confirm] takecare_id:',
-          resolvedTakecareId,
-          '| users_line_id:',
-          user?.users_line_id
-        );
-
         if (user?.users_line_id) {
           const elderName =
             `${takecare?.takecare_fname || ''} ${takecare?.takecare_sname || ''}`.trim() ||
             'ผู้มีภาวะพึ่งพิง';
           const takenTime = getBangkokTimeStr(now);
+
+          const detailRows: any[] = [
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: 'ชื่อ', color: '#555555', size: 'sm', flex: 2 },
+                { type: 'text', text: elderName, color: '#111111', size: 'sm', weight: 'bold', flex: 3, wrap: true },
+              ],
+            },
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: 'ชื่อยา', color: '#555555', size: 'sm', flex: 2 },
+                { type: 'text', text: med.med_name, color: '#111111', size: 'sm', flex: 3, wrap: true },
+              ],
+            },
+          ];
+
+          if (med.med_dosage) {
+            detailRows.push({
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: 'ขนาดยา', color: '#555555', size: 'sm', flex: 2 },
+                { type: 'text', text: med.med_dosage, color: '#111111', size: 'sm', flex: 3, wrap: true },
+              ],
+            });
+          }
+
+          detailRows.push(
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: 'เวลาที่กิน', color: '#555555', size: 'sm', flex: 2 },
+                { type: 'text', text: `${takenTime} น.`, color: '#111111', size: 'sm', flex: 3, wrap: true },
+              ],
+            },
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: 'สถานะ', color: '#555555', size: 'sm', flex: 2 },
+                { type: 'text', text: 'กินยาแล้ว', color: '#16A34A', size: 'sm', weight: 'bold', flex: 3, wrap: true },
+              ],
+            }
+          );
 
           await axios.post(
             'https://api.line.me/v2/bot/message/push',
@@ -131,17 +171,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               to: user.users_line_id,
               messages: [
                 {
-                  type: 'text',
-                  text: [
-                    `✅ ยืนยันการรับประทานยาแล้ว`,
-                    `────────────────`,
-                    `👤 ผู้สูงอายุ: ${elderName}`,
-                    `💊 ชื่อยา: ${med.med_name}`,
-                    med.med_dosage ? `📋 ขนาดยา: ${med.med_dosage}` : null,
-                    `⏰ เวลาที่กิน: ${takenTime} น.`,
-                  ]
-                    .filter(Boolean)
-                    .join('\n'),
+                  type: 'flex',
+                  altText: `ยืนยันการรับประทานยา: ${med.med_name} (${elderName}) เวลา ${takenTime} น.`,
+                  contents: {
+                    type: 'bubble',
+                    body: {
+                      type: 'box',
+                      layout: 'vertical',
+                      spacing: 'md',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: 'ยืนยันการรับประทานยา',
+                          weight: 'bold',
+                          size: 'xl',
+                          color: '#0000FF',
+                        },
+                        {
+                          type: 'box',
+                          layout: 'vertical',
+                          spacing: 'sm',
+                          margin: 'md',
+                          contents: detailRows,
+                        },
+                      ],
+                    },
+                  },
                 },
               ],
             },
@@ -152,7 +207,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               },
             }
           );
-          console.log('[Watch Confirm] ส่ง LINE สำเร็จ!');
+          console.log('[Watch Confirm] ส่ง LINE Flex Message สำเร็จ!');
         }
       } catch (lineErr: any) {
         console.error(
