@@ -133,13 +133,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ];
 
           if (med.med_dosage) {
+            const dosageText = /^\d+(\.\d+)?$/.test(med.med_dosage.trim())
+              ? `${med.med_dosage.trim()} เม็ด`
+              : med.med_dosage;
+
             detailRows.push({
               type: 'box',
               layout: 'baseline',
               spacing: 'sm',
               contents: [
-                { type: 'text', text: 'ขนาดยา', color: '#555555', size: 'sm', flex: 2 },
-                { type: 'text', text: med.med_dosage, color: '#111111', size: 'sm', flex: 3, wrap: true },
+                { type: 'text', text: 'จำนวนยา', color: '#555555', size: 'sm', flex: 2 },
+                { type: 'text', text: dosageText, color: '#111111', size: 'sm', flex: 3, wrap: true },
               ],
             });
           }

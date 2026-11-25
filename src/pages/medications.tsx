@@ -184,7 +184,7 @@ export default function MedicationsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f6fa', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
       <div style={{ backgroundColor: '#06C755', color: '#fff', padding: '20px 16px', textAlign: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>💊 ตั้งเวลาแจ้งเตือนการกินยา</h1>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>ตั้งเวลาแจ้งเตือนการกินยา</h1>
         <p style={{ margin: '6px 0 0', fontSize: '14px', opacity: 0.9 }}>
           ผู้ดูแล: {userData?.users_fname || ''} {userData?.users_sname || ''}
         </p>
@@ -193,7 +193,7 @@ export default function MedicationsPage() {
       <div style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
         <form onSubmit={handleSubmit} style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginBottom: '20px' }}>
           <h2 style={{ margin: '0 0 12px', fontSize: '16px', color: '#333' }}>
-            {editingId ? '✏️ แก้ไขรายการยา' : '➕ เพิ่มรายการยาใหม่'}
+            {editingId ? 'แก้ไขรายการยา' : '➕ เพิ่มรายการยาใหม่'}
           </h2>
 
           <div style={{ marginBottom: '12px' }}>
@@ -210,7 +210,7 @@ export default function MedicationsPage() {
 
           <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '14px', color: '#555', marginBottom: '4px' }}>ขนาด / คำแนะนำ</label>
+              <label style={{ display: 'block', fontSize: '14px', color: '#555', marginBottom: '4px' }}>จำนวน / คำแนะนำ</label>
               <input
                 type="text"
                 placeholder="เช่น 1 เม็ด หลังอาหาร"
@@ -257,7 +257,7 @@ export default function MedicationsPage() {
         </form>
 
         <h3 style={{ margin: '0 0 10px', fontSize: '16px', color: '#333' }}>
-          📋 รายการยาทั้งหมด ({medications.length})
+         รายการยาทั้งหมด ({medications.length})
         </h3>
 
         {medications.length === 0 ? (
@@ -281,7 +281,7 @@ export default function MedicationsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#06C755', marginRight: '8px' }}>
-                    ⏰ {med.remind_time} น.
+                     {med.remind_time} น.
                   </span>
                   <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#222' }}>{med.med_name}</span>
                 </div>
@@ -307,14 +307,14 @@ export default function MedicationsPage() {
                   onClick={() => handleEdit(med)}
                   style={{ background: 'none', border: 'none', color: '#1976d2', fontSize: '14px', cursor: 'pointer', padding: 0 }}
                 >
-                  ✏️ แก้ไข
+                   แก้ไข
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(med.med_id)}
                   style={{ background: 'none', border: 'none', color: '#e53935', fontSize: '14px', cursor: 'pointer', padding: 0 }}
                 >
-                  🗑️ ลบ
+                   ลบ
                 </button>
               </div>
             </div>
