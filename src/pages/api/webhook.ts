@@ -167,7 +167,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse) 
           const webDomain = process.env.WEB_DOMAIN || 'https://afe-plus-v3-production.up.railway.app';
           await replyMessage({
             replyToken,
-            message: `💊 ตั้งเวลาแจ้งเตือนการกินยา\nกดลิงก์ด้านล่างเพื่อเพิ่มหรือแก้ไขรายการยา:\n${webDomain}/medications?auToken=${encodedUsersId}`
+            message: ` ตั้งเวลาแจ้งเตือนการกินยา\nกดลิงก์ด้านล่างเพื่อเพิ่มหรือแก้ไขรายการยา:\n${webDomain}/medications?auToken=${encodedUsersId}`
           });
         } else {
           await replyNotRegistration({ replyToken, userId });

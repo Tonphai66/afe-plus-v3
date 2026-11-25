@@ -488,7 +488,7 @@ export default async function handle(
                                         messages: [
                                             {
                                                 type: "flex",
-                                                altText: "💊 ตั้งเวลาแจ้งเตือนการกินยา",
+                                                altText: " ตั้งเวลาแจ้งเตือนการกินยา",
                                                 contents: {
                                                     type: "bubble",
                                                     size: "kilo",
@@ -499,7 +499,7 @@ export default async function handle(
                                                         contents: [
                                                             {
                                                                 type: "text",
-                                                                text: "💊 ตั้งเวลาแจ้งเตือนการกินยา",
+                                                                text: " ตั้งเวลาแจ้งเตือนการกินยา",
                                                                 weight: "bold",
                                                                 size: "md",
                                                                 color: "#111111",

@@ -193,7 +193,7 @@ export default function MedicationsPage() {
       <div style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
         <form onSubmit={handleSubmit} style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginBottom: '20px' }}>
           <h2 style={{ margin: '0 0 12px', fontSize: '16px', color: '#333' }}>
-            {editingId ? 'แก้ไขรายการยา' : '➕ เพิ่มรายการยาใหม่'}
+            {editingId ? 'แก้ไขรายการยา' : ' เพิ่มรายการยาใหม่'}
           </h2>
 
           <div style={{ marginBottom: '12px' }}>
