@@ -165,7 +165,7 @@ export default function MedicationsPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f6fa', fontFamily: 'sans-serif' }}>
-        <p style={{ fontSize: '18px', color: '#06C755', fontWeight: 'bold' }}>⏳ กำลังโหลดข้อมูลรายการยา...</p>
+        <p style={{ fontSize: '18px', color: '#06C755', fontWeight: 'bold' }}></p>
       </div>
     );
   }
