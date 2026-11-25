@@ -1,6 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
 
+function getBangkokDateStr(date: Date) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(date); // YYYY-MM-DD
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
@@ -62,6 +72,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: { med_id: id },
         data: updateData,
       });
+
+      // ถ้ามีการแก้ไขเวลา ให้รีเซ็ตสถานะการกินยาของวันนี้ เพื่อใช้รายการเดิมซ้ำได้ทันที
+      if (remind_time !== undefined) {
+        const todayStr = getBangkokDateStr(new Date());
+        await prisma.medication_logs.deleteMany({
+          where: {
+            med_id: id,
+            med_date: todayStr,
+          },
+        });
+      }
 
       return res.status(200).json({ status: 'ok', data: updated });
     } catch (error) {
