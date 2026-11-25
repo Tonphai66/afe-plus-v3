@@ -132,7 +132,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               messages: [
                 {
                   type: 'text',
-                  text: `✅ กินยาแล้ว: ${med.med_name} (ผู้มีภาวะพึ่งพิง: ${elderName}) เวลา ${takenTime} น.`,
+                  text: [
+                    `✅ ยืนยันการรับประทานยาแล้ว`,
+                    `────────────────`,
+                    `👤 ผู้สูงอายุ: ${elderName}`,
+                    `💊 ชื่อยา: ${med.med_name}`,
+                    med.med_dosage ? `📋 ขนาดยา: ${med.med_dosage}` : null,
+                    `⏰ เวลาที่กิน: ${takenTime} น.`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n'),
                 },
               ],
             },
