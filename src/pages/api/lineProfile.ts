@@ -1,0 +1,724 @@
+import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
+import axios from "axios";
+import prisma from "@/lib/prisma";
+import {
+    replyMessage,
+    replyMainMenu,
+    replyRegistration,
+    replyUserData,
+    replyNotRegistration,
+    replyMenuBorrowequipment,
+    replyConnection,
+    replyLocation,
+    replySetting,
+    replyUserInfo,
+    replyNotification,
+} from "@/utils/apiLineReply";
+import { replyNotification as replyNotificationToGroup } from '@/utils/apiLineGroup';
+import { encrypt, parseQueryString } from "@/utils/helpers";
+import {
+    postbackSafezone,
+    postbackAccept,
+    postbackClose,
+    postbackTemp,
+    postbackFall,
+    postbackHeartRate,
+} from "@/lib/lineFunction";
+import * as api from "@/lib/listAPI";
+
+type Data = {
+    message: string;
+    data?: any;
+};
+
+const getUser = async (userId: string) => {
+    console.log("Fetching user data for userId:", userId);
+    const responseUser = await axios.get(
+        `${process.env.WEB_DOMAIN}/api/user/getUser/${userId}`
+    );
+    if (responseUser.data?.data) {
+        console.log("User data retrieved:", responseUser.data.data);
+        return responseUser.data.data;
+    } else {
+        console.log("User data not found for userId:", userId);
+        return null;
+    }
+};
+
+const getGroupLine = async (groupId: string) => {
+    console.log("Fetching group data for groupId:", groupId);
+    const response = await axios.get(
+        `${process.env.WEB_DOMAIN}/api/master/getGroupLine?group_line_id=${groupId}`
+    );
+    if (response.data?.data) {
+        console.log("Group data retrieved:", response.data.data);
+        return response.data.data;
+    } else {
+        console.log("Group data not found for groupId:", groupId);
+        return null;
+    }
+};
+
+const addGroupLine = async (groupId: string) => {
+    console.log("Adding new group data for groupId:", groupId);
+    const response = await axios.post(
+        `${process.env.WEB_DOMAIN}/api/master/getGroupLine`,
+        { group_line_id: groupId, group_name: "" }
+    );
+    if (response.data?.id) {
+        console.log("New group added with id:", response.data.id);
+        return response.data.id;
+    } else {
+        console.log("Failed to add new group for groupId:", groupId);
+        return null;
+    }
+};
+
+const getUserTakecareperson = async (userId: string) => {
+    console.log("Fetching user takecare person data for userId:", userId);
+    const responseUser = await axios.get(
+        `${process.env.WEB_DOMAIN}/api/user/getUserTakecareperson/${userId}`,
+        { headers: { 'x-internal-key': process.env.INTERNAL_API_KEY || '' } }
+    );
+    if (responseUser.data?.data) {
+        console.log(
+            "User takecare person data retrieved:",
+            responseUser.data.data
+        );
+        return responseUser.data.data;
+    } else {
+        console.log("User takecare person data not found for userId:", userId);
+        return null;
+    }
+};
+
+const getSafezone = async (takecare_id: number, users_id: number) => {
+    console.log(
+        `Fetching safezone data for takecare_id: ${takecare_id}, users_id: ${users_id}`
+    );
+    const response = await axios.get(
+        `${process.env.WEB_DOMAIN}/api/setting/getSafezone?takecare_id=${takecare_id}&users_id=${users_id}`,
+        { headers: { 'x-internal-key': process.env.INTERNAL_API_KEY || '' } }
+    );
+    if (response.data?.data) {
+        console.log("Safezone data retrieved:", response.data.data);
+        return response.data.data;
+    } else {
+        console.log(
+            "Safezone data not found for takecare_id:",
+            takecare_id,
+            "users_id:",
+            users_id
+        );
+        return null;
+    }
+};
+
+const getLocation = async (
+    takecare_id: number,
+    users_id: number,
+    safezone_id: number
+) => {
+    try {
+        console.log(
+            `Fetching location data for takecare_id: ${takecare_id}, users_id: ${users_id}, safezone_id: ${safezone_id}`
+        );
+        const response = await axios.get(
+            `${process.env.WEB_DOMAIN}/api/location/getLocation?takecare_id=${takecare_id}&users_id=${users_id}&safezone_id=${safezone_id}`,
+            { headers: { 'x-internal-key': process.env.INTERNAL_API_KEY || '' } }
+        );
+        if (response.data?.data) {
+            console.log("Location data retrieved:", response.data.data);
+            return response.data.data;
+        }
+
+        return null;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+            console.log("No current location found; using safezone coordinates.");
+            return null;
+        }
+
+        throw error;
+    }
+};
+
+const getTemperature = async (takecare_id: number, users_id: number) => {
+    console.log(
+        `Fetching settingTemp data for ${takecare_id}, user_id ${users_id}`
+    );
+    const response = await axios.get(
+        `${process.env.WEB_DOMAIN}/api/setting/getTemperature?takecare_id=${takecare_id}&users_id=${users_id}`,
+        { headers: { 'x-internal-key': process.env.INTERNAL_API_KEY || '' } }
+    );
+    if (response.data?.data) {
+        console.log("settingtemp data retrieved ", response.data.data);
+        return response.data.data;
+    } else {
+        console.log(
+            "settingtemp data not found for takecare_id:",
+            takecare_id,
+            "users_id:",
+            users_id
+        );
+        return null;
+    }
+};
+
+const getHeartRate = async (takecare_id: number, users_id: number) => {
+    console.log(
+        `Fetching heart rate setting data for takecare_id: ${takecare_id}, users_id: ${users_id}`
+    );
+    const response = await axios.get(
+        `${process.env.WEB_DOMAIN}/api/setting/getHeartRate?takecare_id=${takecare_id}&users_id=${users_id}`,
+        { headers: { 'x-internal-key': process.env.INTERNAL_API_KEY || '' } }
+    );
+    if (response.data?.data) {
+        console.log("Heart rate setting data retrieved", response.data.data);
+        return response.data.data;
+    } else {
+        console.log(
+            "Heart rate setting data not found for takecare_id:",
+            takecare_id,
+            "users_id:",
+            users_id
+        );
+        return null;
+    }
+};
+
+export default async function handle(
+    req: NextApiRequest,
+    res: NextApiResponse
+) {
+    if (req.method === "POST") {
+        try {
+            console.log("Received request body:", req.body);
+
+            if (req.body.events[0]) {
+                const events = req.body.events[0];
+
+                const replyToken = events.replyToken;
+                const userId = events.source.userId;
+
+                console.log("Processing event for userId:", userId);
+
+                if (
+                    events.type === "message" &&
+                    events.source.type === "user"
+                ) {
+                    if (events.message.type === "text") {
+                        const textMsg = events.message.text.trim();
+                        console.log("Received text message:", textMsg);
+
+                        if (textMsg === "ดูข้อมูล AFE PLUS" || textMsg === "เมนู") {
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                await replyMainMenu({
+                                    replyToken,
+                                    userData: responseUser,
+                                });
+                            } else {
+                                await replyNotRegistration({ replyToken, userId });
+                            }
+                        } else if (textMsg === "ลงทะเบียน") {
+                            try {
+                                const responseUser = await api.getUser(userId);
+                                if (responseUser) {
+                                    console.log(
+                                        "User is already registered, replying with user data."
+                                    );
+                                    await replyUserData({
+                                        replyToken,
+                                        userData: responseUser,
+                                    });
+                                } else {
+                                    console.log(
+                                        "User not registered, sending registration reply."
+                                    );
+                                    await replyRegistration({ replyToken, userId });
+                                }
+                            } catch (error) {
+                                console.error("Error in registration flow:", error);
+                                await replyMessage({
+                                    replyToken,
+                                    message: "ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง",
+                                });
+                            }
+                        } else if (
+                            textMsg === "การยืม-คืนครุภัณฑ์"
+                        ) {
+                            console.log("User selected 'การยืม-คืนครุภัณฑ์'");
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                console.log(
+                                    "User is registered, replying with menu borrow equipment."
+                                );
+                                await replyMenuBorrowequipment({
+                                    replyToken,
+                                    userData: responseUser,
+                                });
+                            } else {
+                                console.log(
+                                    "User not registered, sending not registration reply."
+                                );
+                                await replyNotRegistration({
+                                    replyToken,
+                                    userId,
+                                });
+                            }
+                        } else if (
+                            textMsg === "การเชื่อมต่อนาฬิกา"
+                        ) {
+                            console.log("User selected 'การเชื่อมต่อนาฬิกา'");
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                const encodedUsersId = encrypt(
+                                    responseUser.users_id.toString()
+                                );
+                                const responseUserTakecareperson =
+                                    await getUserTakecareperson(encodedUsersId);
+                                if (responseUserTakecareperson) {
+                                    console.log(
+                                        "Replying with connection information."
+                                    );
+                                    await replyConnection({
+                                        replyToken,
+                                        userData: responseUser,
+                                        userTakecarepersonData:
+                                            responseUserTakecareperson,
+                                    });
+                                } else {
+                                    console.log(
+                                        "No takecare person added, replying with error message."
+                                    );
+                                    await replyMessage({
+                                        replyToken:
+                                            req.body.events[0].replyToken,
+                                        message:
+                                            "ยังไม่ได้เพิ่มข้อมูลผู้มีภาวะพึ่งพิงไม่สามารถเชื่อมต่อนาฬิกาได้",
+                                    });
+                                }
+                            } else {
+                                console.log(
+                                    "User not registered, sending not registration reply."
+                                );
+                                await replyNotRegistration({
+                                    replyToken,
+                                    userId,
+                                });
+                            }
+                        } else if (
+                            textMsg ===
+                            "ดูข้อมูลสุขภาพและตำแหน่งปัจจุบัน"
+                        ) {
+                            console.log(
+                                "User selected 'ดูข้อมูลสุขภาพและตำแหน่งปัจจุบัน'"
+                            );
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                const encodedUsersId = encrypt(
+                                    responseUser.users_id.toString()
+                                );
+                                const responseUserTakecareperson =
+                                    await getUserTakecareperson(encodedUsersId);
+                                if (responseUserTakecareperson) {
+                                    const responeSafezone = await getSafezone(
+                                        responseUserTakecareperson.takecare_id,
+                                        responseUser.users_id
+                                    );
+                                    if (responeSafezone) {
+                                        const responeLocation =
+                                            await getLocation(
+                                                responseUserTakecareperson.takecare_id,
+                                                responseUser.users_id,
+                                                responeSafezone.safezone_id
+                                            );
+                                        console.log(
+                                            "Replying with location information."
+                                        );
+                                        await replyLocation({
+                                            replyToken,
+                                            userData: responseUser,
+                                            userTakecarepersonData:
+                                                responseUserTakecareperson,
+                                            safezoneData: responeSafezone,
+                                            locationData: responeLocation,
+                                        });
+                                    } else {
+                                        console.log(
+                                            "Safezone not set, replying with error message."
+                                        );
+                                        await replyMessage({
+                                            replyToken:
+                                                req.body.events[0].replyToken,
+                                            message:
+                                                "ยังไม่ได้ตั้งค่าเขตปลอดภัยไม่สามารถดูตำแหน่งปัจจุบันได้",
+                                        });
+                                    }
+                                } else {
+                                    console.log(
+                                        "No takecare person added, replying with error message."
+                                    );
+                                    await replyMessage({
+                                        replyToken:
+                                            req.body.events[0].replyToken,
+                                        message:
+                                            "ยังไม่ได้เพิ่มข้อมูลผู้มีภาวะพึ่งพิงไม่สามารถดูตำแหน่งปัจจุบันได้",
+                                    });
+                                }
+                            } else {
+                                console.log(
+                                    "User not registered, sending not registration reply."
+                                );
+                                await replyNotRegistration({
+                                    replyToken,
+                                    userId,
+                                });
+                            }
+                        } else if (
+                            textMsg === "ตั้งค่าความปลอดภัย"
+                        ) {
+                            console.log("User selected 'ตั้งค่าความปลอดภัย'");
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                const encodedUsersId = encrypt(
+                                    responseUser.users_id.toString()
+                                );
+                                const responseUserTakecareperson =
+                                    await getUserTakecareperson(encodedUsersId);
+                                if (responseUserTakecareperson) {
+                                    const responeSafezone = await getSafezone(
+                                        responseUserTakecareperson.takecare_id,
+                                        responseUser.users_id
+                                    );
+                                    const responseTemp = await getTemperature(
+                                        responseUserTakecareperson.takecare_id,
+                                        responseUser.users_id
+                                    );
+                                    const responseHeartRate =
+                                        await getHeartRate(
+                                            responseUserTakecareperson.takecare_id,
+                                            responseUser.users_id
+                                        );
+                                    console.log(
+                                        "Replying with safezone setting information."
+                                    );
+                                    await replySetting({
+                                        replyToken,
+                                        userData: responseUser,
+                                        userTakecarepersonData:
+                                            responseUserTakecareperson,
+                                        safezoneData: responeSafezone,
+                                        temperatureSettingData: responseTemp,
+                                        heartrateSettingData: responseHeartRate,
+                                    });
+                                } else {
+                                    console.log(
+                                        "No takecare person added, replying with error message."
+                                    );
+                                    await replyMessage({
+                                        replyToken:
+                                            req.body.events[0].replyToken,
+                                        message:
+                                            "ยังไม่ได้เพิ่มข้อมูลผู้มีภาวะพึ่งพิงไม่สามารถตั้งค่าเขตปลอดภัยได้",
+                                    });
+                                }
+                            } else {
+                                console.log(
+                                    "User not registered, sending not registration reply."
+                                );
+                                await replyNotRegistration({
+                                    replyToken,
+                                    userId,
+                                });
+                            }
+                        } else if (
+                            textMsg === "ดูข้อมูลผู้ใช้งาน"
+                        ) {
+                            console.log("User selected 'ดูข้อมูลผู้ใช้งาน'");
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                const encodedUsersId = encrypt(
+                                    responseUser.users_id.toString()
+                                );
+                                const responseUserTakecareperson =
+                                    await getUserTakecareperson(encodedUsersId);
+                                console.log("Replying with user information.");
+                                await replyUserInfo({
+                                    replyToken,
+                                    userData: responseUser,
+                                    userTakecarepersonData:
+                                        responseUserTakecareperson,
+                                });
+                            } else {
+                                console.log(
+                                    "User not registered, sending not registration reply."
+                                );
+                                await replyNotRegistration({
+                                    replyToken,
+                                    userId,
+                                });
+                            }
+                        } else if (
+                            textMsg === "ตั้งเวลาการกินยา" ||
+                            textMsg === "จัดการยา" ||
+                            textMsg === "ตั้งค่าการกินยา"
+                        ) {
+                            console.log("User selected medication setting");
+                            const responseUser = await api.getUser(userId);
+                            if (responseUser) {
+                                const rawEncrypted = encrypt(
+                                    responseUser.users_id.toString()
+                                );
+                                const encodedUsersId = rawEncrypted.includes("%")
+                                    ? rawEncrypted
+                                    : encodeURIComponent(rawEncrypted);
+                                const webDomain = (
+                                    process.env.WEB_DOMAIN ||
+                                    "https://afe-plus-v3-production.up.railway.app"
+                                ).replace(/\/+$/, "");
+                                const medicationUrl = `${webDomain}/medications?auToken=${encodedUsersId}`;
+
+                                await axios.post(
+                                    "https://api.line.me/v2/bot/message/reply",
+                                    {
+                                        replyToken,
+                                        messages: [
+                                            {
+                                                type: "flex",
+                                                altText: "💊 ตั้งเวลาแจ้งเตือนการกินยา",
+                                                contents: {
+                                                    type: "bubble",
+                                                    size: "kilo",
+                                                    body: {
+                                                        type: "box",
+                                                        layout: "vertical",
+                                                        spacing: "sm",
+                                                        contents: [
+                                                            {
+                                                                type: "text",
+                                                                text: "💊 ตั้งเวลาแจ้งเตือนการกินยา",
+                                                                weight: "bold",
+                                                                size: "md",
+                                                                color: "#111111",
+                                                            },
+                                                            {
+                                                                type: "text",
+                                                                text: "กดปุ่มด้านล่างเพื่อเพิ่ม แก้ไข หรือจัดการเวลาการกินยา",
+                                                                size: "sm",
+                                                                color: "#666666",
+                                                                wrap: true,
+                                                            },
+                                                        ],
+                                                    },
+                                                    footer: {
+                                                        type: "box",
+                                                        layout: "vertical",
+                                                        contents: [
+                                                            {
+                                                                type: "button",
+                                                                style: "primary",
+                                                                color: "#06C755",
+                                                                action: {
+                                                                    type: "uri",
+                                                                    label: "ตั้งเวลาการกินยา",
+                                                                    uri: medicationUrl,
+                                                                },
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            Authorization: `Bearer ${process.env.CHANNEL_ACCESS_TOKEN_LINE}`,
+                                        },
+                                    }
+                                );
+                            } else {
+                                await replyNotRegistration({
+                                    replyToken,
+                                    userId,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (events.source.type === "group" && events.type === "join") {
+                    console.log(
+                        "Joined a new group, groupId:",
+                        events.source.groupId
+                    );
+
+                    const groupLine = await getGroupLine(events.source.groupId);
+                    if (!groupLine) {
+                        console.log(
+                            "Group not found, adding new group:",
+                            events.source.groupId
+                        );
+                        await addGroupLine(events.source.groupId);
+                    }
+                }
+
+                if (events.type === "postback" && events.postback?.data) {
+                    const postback = parseQueryString(events.postback.data);
+                    console.log("Received postback data:", postback);
+
+                    if (postback.type === "safezone") {
+                        console.log("Handling safezone postback data.");
+                        const result: any = await postbackSafezone({
+                            userLineId: postback.userLineId,
+                            takecarepersonId: Number(postback.takecarepersonId),
+                        });
+                        console.log('postbackSafezone result:', result);
+
+                        if (result === 'already_sent') {
+                            await replyMessage({ replyToken, message: 'มีคำขอความช่วยเหลือที่ยังไม่ปิดอยู่แล้ว' });
+                        } else if (result === 'in_safezone') {
+                            await replyMessage({ replyToken, message: 'อยู่ในเขตปลอดภัยไม่สามารถส่งคำขอได้' });
+                        } else if (result && result.status === 'ok') {
+                            try {
+                                await replyNotificationToGroup({
+                                    resUser: result.resUser,
+                                    resTakecareperson: result.resTakecareperson,
+                                    resSafezone: result.resSafezone,
+                                    extendedHelpId: result.extendedHelpId,
+                                    locationData: result.locationData,
+                                });
+                                await replyMessage({ replyToken, message: 'ส่งคำขอความช่วยเหลือแล้ว' });
+                            } catch (err) {
+                                console.error('Failed to notify group:', err);
+                                await replyMessage({ replyToken, message: 'ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการตั้งค่า Safezone หรือข้อมูลผู้ดูแล' });
+                            }
+                        } else {
+                            console.log('Failed to process safezone postback.');
+                            await replyMessage({ replyToken, message: 'ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการตั้งค่า Safezone หรือข้อมูลผู้ดูแล' });
+                        }
+                    } else if (postback.type === "temperature") {
+                        console.log("Handling temperature postback data.");
+                        const userPushId = await postbackTemp({
+                            userLineId: postback.userLineId,
+                            takecarepersonId: Number(postback.takecarepersonId),
+                        });
+
+                        if (userPushId) {
+                            console.log(
+                                "Temperature request sent, replying with notification."
+                            );
+                            await replyNotification({
+                                replyToken: userPushId,
+                                message: "ส่งคำขอความช่วยเหลือแล้ว",
+                            });
+                        } else {
+                            console.log(
+                                "takecarepersonId: " +
+                                    postback.takecarepersonId +
+                                    "userLineId: " +
+                                    postback.userLineId +
+                                    "\nNo reply token received for temperature postback.:❌❌"
+                            );
+                            await replyMessage({
+                                replyToken,
+                                message:
+                                    "ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการตั้งค่า",
+                            });
+                        }
+                    } else if (postback.type === "fall") {
+                        console.log("Handling fall postback data.");
+                        const userPushId = await postbackFall({
+                            userLineId: postback.userLineId,
+                            takecarepersonId: Number(postback.takecarepersonId),
+                        });
+                        if (userPushId) {
+                            console.log(
+                                "Fall request sent, replying with notification."
+                            );
+                            await replyNotification({
+                                replyToken: userPushId,
+                                message: "ส่งคำขอความช่วยเหลือแล้ว",
+                            });
+                        } else {
+                            console.log("Failed to process fall postback.");
+                            await replyMessage({
+                                replyToken,
+                                message:
+                                    "ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการตั้งค่า",
+                            });
+                        }
+                    } else if (postback.type === "heartrate") {
+                        console.log("Handling heart rate postback data.");
+                        const userPushId = await postbackHeartRate({
+                            userLineId: postback.userLineId,
+                            takecarepersonId: Number(postback.takecarepersonId),
+                        });
+
+                        if (userPushId) {
+                            console.log(
+                                "Heart Rate request sent, replying with notification."
+                            );
+                            await replyNotification({
+                                replyToken: userPushId,
+                                message: "ส่งคำขอความช่วยเหลือแล้ว",
+                            });
+                        } else {
+                            console.log(
+                                "Failed to process heartrate postback."
+                            );
+                            await replyMessage({
+                                replyToken,
+                                message:
+                                    "ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการตั้งค่า",
+                            });
+                        }
+                    } else if (postback.type === "accept") {
+                        console.log("Handling accept postback data.");
+                        let data = postback;
+                        data.groupId = events.source.groupId;
+                        data.userIdAccept = events.source.userId;
+                        const replyToken = await postbackAccept(data);
+                        if (replyToken) {
+                            console.log(
+                                "Accept request handled, replying with notification."
+                            );
+                            await replyNotification({
+                                replyToken,
+                                message: "ตอบรับเคสขอความช่วยเหลือแล้ว",
+                            });
+                        }
+                    } else if (postback.type === "close") {
+                        console.log("Handling close postback data.");
+                        let data = postback;
+                        data.groupId = events.source.groupId;
+                        data.userIdAccept = events.source.userId;
+                        const replyToken = await postbackClose(data);
+                        if (replyToken) {
+                            console.log(
+                                "Close request handled, replying with notification."
+                            );
+                            await replyNotification({
+                                replyToken,
+                                message: "ปิดเคสขอความช่วยเหลือแล้ว",
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error occurred:", error);
+            return await replyMessage({
+                replyToken: req.body.events[0].replyToken,
+                message: "ระบบขัดข้องกรุณาลองใหม่อีกครั้ง",
+            });
+        }
+        return res.status(200).json({ message: "success" });
+    } else {
+        res.setHeader("Allow", ["POST"]);
+        res.status(405).json({ message: `วิธี ${req.method} ไม่อนุญาต` });
+    }
+}
